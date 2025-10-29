@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/home/zgltyq/neovim-jira/logs/.6f170c7c61d21886a70101e92564799d07c90199-audit.json",
+    "files": [
+        {
+            "date": 1761752874461,
+            "name": "/home/zgltyq/neovim-jira/logs/mcp-puppeteer-2025-10-29.log",
+            "hash": "1bf02d36e509fa7e4800d4241c15537b9c4ff9d7af44d532cb07f7d04dc551c8"
+        }
+    ],
+    "hashType": "sha256"
+}
