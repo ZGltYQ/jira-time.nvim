@@ -26,7 +26,7 @@ A Neovim plugin for logging time to Jira tasks directly from your editor. Track 
 
 ```lua
 {
-  'your-username/jira-time.nvim',
+  'ZGltYQ/jira-time.nvim',
   dependencies = {
     'nvim-lua/plenary.nvim',
   },
@@ -46,7 +46,7 @@ A Neovim plugin for logging time to Jira tasks directly from your editor. Track 
 
 ```lua
 use {
-  'your-username/jira-time.nvim',
+  'ZGltYQ/jira-time.nvim',
   requires = { 'nvim-lua/plenary.nvim' },
   config = function()
     require('jira-time').setup({

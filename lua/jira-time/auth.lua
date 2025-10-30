@@ -13,6 +13,21 @@ end
 local OAUTH_AUTHORIZE_URL = 'https://auth.atlassian.com/authorize'
 local OAUTH_TOKEN_URL = 'https://auth.atlassian.com/oauth/token'
 
+-- URL encode a string
+---@param str string String to encode
+---@return string encoded URL encoded string
+local function url_encode(str)
+  if str == nil then
+    return ''
+  end
+  str = string.gsub(str, '\n', '\r\n')
+  str = string.gsub(str, '([^%w%-%.%_%~ ])', function(c)
+    return string.format('%%%02X', string.byte(c))
+  end)
+  str = string.gsub(str, ' ', '+')
+  return str
+end
+
 -- Generate random state for OAuth security
 ---@return string state Random state string
 local function generate_state()
@@ -42,7 +57,7 @@ local function build_auth_url(config, state)
 
   local query_parts = {}
   for key, value in pairs(params) do
-    table.insert(query_parts, key .. '=' .. vim.fn.shellescape(value))
+    table.insert(query_parts, key .. '=' .. url_encode(value))
   end
 
   return OAUTH_AUTHORIZE_URL .. '?' .. table.concat(query_parts, '&')
@@ -66,7 +81,7 @@ local function exchange_code_for_token(code, callback)
   -- Convert data to URL-encoded form
   local body_parts = {}
   for key, value in pairs(data) do
-    table.insert(body_parts, key .. '=' .. vim.fn.shellescape(value))
+    table.insert(body_parts, key .. '=' .. url_encode(value))
   end
   local body = table.concat(body_parts, '&')
 
@@ -175,7 +190,7 @@ function M.refresh_token(callback)
   -- Convert data to URL-encoded form
   local body_parts = {}
   for key, value in pairs(data) do
-    table.insert(body_parts, key .. '=' .. vim.fn.shellescape(value))
+    table.insert(body_parts, key .. '=' .. url_encode(value))
   end
   local body = table.concat(body_parts, '&')
 
