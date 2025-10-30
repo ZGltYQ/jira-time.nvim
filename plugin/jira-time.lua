@@ -97,3 +97,12 @@ end, {
   nargs = 0,
   desc = 'Show jira-time plugin status',
 })
+
+-- Command: Debug authentication (development)
+-- Usage: :JiraTimeDebug
+vim.api.nvim_create_user_command('JiraTimeDebug', function()
+  require('jira-time.debug').test_auth()
+end, {
+  nargs = 0,
+  desc = 'Debug authentication and API calls',
+})
