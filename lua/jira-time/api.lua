@@ -10,6 +10,21 @@ if not has_plenary then
   )
 end
 
+-- URL encode a string
+---@param str string String to encode
+---@return string encoded URL encoded string
+local function url_encode(str)
+  if str == nil then
+    return ''
+  end
+  str = string.gsub(str, '\n', '\r\n')
+  str = string.gsub(str, '([^%w%-%.%_%~ ])', function(c)
+    return string.format('%%%02X', string.byte(c))
+  end)
+  str = string.gsub(str, ' ', '+')
+  return str
+end
+
 -- Make authenticated API request
 ---@param method string HTTP method (get, post, put, delete)
 ---@param endpoint string API endpoint path
@@ -123,7 +138,7 @@ end
 ---@param jql string JQL query string
 ---@param callback function Callback function(results, error)
 function M.search_issues(jql, callback)
-  local endpoint = '/rest/api/3/search?jql=' .. vim.fn.shellescape(jql)
+  local endpoint = '/rest/api/3/search?jql=' .. url_encode(jql)
   M.request('get', endpoint, nil, callback)
 end
 
