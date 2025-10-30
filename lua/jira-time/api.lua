@@ -171,8 +171,11 @@ end
 ---@param jql string JQL query string
 ---@param callback function Callback function(results, error)
 function M.search_issues(jql, callback)
-  local endpoint = '/rest/api/3/search?jql=' .. url_encode(jql)
-  M.request('get', endpoint, nil, callback)
+  local endpoint = '/rest/api/3/search/jql'
+  local data = {
+    jql = jql,
+  }
+  M.request('post', endpoint, data, callback)
 end
 
 -- Get issues assigned to current user
