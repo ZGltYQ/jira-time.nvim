@@ -206,27 +206,46 @@ function M.refresh_token(callback)
   end
   local body = table.concat(body_parts, '&')
 
-  local response = curl.post(OAUTH_TOKEN_URL, {
-    headers = {
-      ['Content-Type'] = 'application/x-www-form-urlencoded',
-    },
-    body = body,
-  })
+  vim.notify('Refreshing access token...', vim.log.levels.DEBUG)
+
+  -- Make request with error handling and timeout
+  local ok, response = pcall(function()
+    return curl.post(OAUTH_TOKEN_URL, {
+      headers = {
+        ['Content-Type'] = 'application/x-www-form-urlencoded',
+      },
+      body = body,
+      timeout = 30000, -- 30 second timeout
+    })
+  end)
+
+  if not ok then
+    vim.notify('Token refresh request failed: ' .. tostring(response), vim.log.levels.ERROR)
+    callback(false)
+    return
+  end
 
   if response.status == 200 then
-    local ok, token_data = pcall(vim.json.decode, response.body)
-    if ok then
+    local parse_ok, token_data = pcall(vim.json.decode, response.body)
+    if parse_ok and token_data.access_token then
       -- Update tokens
       auth_data.access_token = token_data.access_token
       auth_data.refresh_token = token_data.refresh_token or auth_data.refresh_token
       auth_data.expires_at = os.time() + (token_data.expires_in or 3600)
 
       storage.save_auth(auth_data)
+      vim.notify('Token refreshed successfully', vim.log.levels.DEBUG)
       callback(true)
     else
+      vim.notify('Failed to parse token response', vim.log.levels.ERROR)
       callback(false)
     end
   else
+    local error_msg = 'Token refresh failed with status ' .. response.status
+    if response.body then
+      vim.notify('Response: ' .. response.body, vim.log.levels.DEBUG)
+    end
+    vim.notify(error_msg, vim.log.levels.ERROR)
     callback(false)
   end
 end

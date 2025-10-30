@@ -72,6 +72,16 @@ end, {
   desc = 'Authenticate with Jira using OAuth 2.0',
 })
 
+-- Command: Logout / Clear authentication
+-- Usage: :JiraLogout
+vim.api.nvim_create_user_command('JiraLogout', function()
+  get_plugin().auth.logout()
+  vim.notify('Logged out. Run :JiraAuth to authenticate again.', vim.log.levels.INFO)
+end, {
+  nargs = 0,
+  desc = 'Clear Jira authentication (logout)',
+})
+
 -- Command: Show status (debug)
 -- Usage: :JiraTimeStatus
 vim.api.nvim_create_user_command('JiraTimeStatus', function()

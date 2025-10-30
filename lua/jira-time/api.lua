@@ -30,7 +30,8 @@ end
 ---@param endpoint string API endpoint path
 ---@param data table|nil Request body data
 ---@param callback function Callback function(response, error)
-function M.request(method, endpoint, data, callback)
+---@param is_retry boolean|nil Internal flag to prevent infinite recursion
+function M.request(method, endpoint, data, callback, is_retry)
   local config = require('jira-time.config').get()
   local auth = require('jira-time.auth')
 
@@ -102,13 +103,23 @@ function M.request(method, endpoint, data, callback)
       callback(body_data, nil)
     end
   elseif response.status == 401 then
-    -- Token expired, try to refresh
+    -- Token expired, try to refresh (but only once to prevent infinite recursion)
+    if is_retry then
+      vim.notify('Token refresh failed. Please run :JiraAuth to re-authenticate', vim.log.levels.ERROR)
+      if callback then
+        callback(nil, 'Authentication failed')
+      end
+      return
+    end
+
+    vim.notify('Access token expired, refreshing...', vim.log.levels.INFO)
     auth.refresh_token(function(success)
       if success then
-        -- Retry the request
-        M.request(method, endpoint, data, callback)
+        vim.notify('Token refreshed successfully, retrying request...', vim.log.levels.INFO)
+        -- Retry the request once
+        M.request(method, endpoint, data, callback, true)
       else
-        vim.notify('Authentication failed. Please run :JiraAuth', vim.log.levels.ERROR)
+        vim.notify('Token refresh failed. Please run :JiraAuth to re-authenticate', vim.log.levels.ERROR)
         if callback then
           callback(nil, 'Authentication failed')
         end
