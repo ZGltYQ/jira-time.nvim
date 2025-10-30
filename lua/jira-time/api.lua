@@ -27,7 +27,7 @@ end
 
 -- Make authenticated API request
 ---@param method string HTTP method (get, post, put, delete)
----@param endpoint string API endpoint path
+---@param endpoint string API endpoint path (e.g., /rest/api/3/myself)
 ---@param data table|nil Request body data
 ---@param callback function Callback function(response, error)
 ---@param is_retry boolean|nil Internal flag to prevent infinite recursion
@@ -35,9 +35,11 @@ function M.request(method, endpoint, data, callback, is_retry)
   local config = require('jira-time.config').get()
   local auth = require('jira-time.auth')
 
-  -- Get access token
+  -- Get access token and cloud ID
   local token = auth.get_access_token()
-  if not token then
+  local cloud_id = auth.get_cloud_id()
+
+  if not token or not cloud_id then
     vim.notify('Not authenticated. Run :JiraAuth to authenticate.', vim.log.levels.ERROR)
     if callback then
       callback(nil, 'Not authenticated')
@@ -45,7 +47,8 @@ function M.request(method, endpoint, data, callback, is_retry)
     return
   end
 
-  local url = config.jira_url .. endpoint
+  -- Use Atlassian OAuth API format: https://api.atlassian.com/ex/jira/{cloudId}/rest/api/3/...
+  local url = 'https://api.atlassian.com/ex/jira/' .. cloud_id .. endpoint
 
   -- Prepare headers
   local headers = {

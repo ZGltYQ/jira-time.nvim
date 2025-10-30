@@ -63,6 +63,28 @@ local function build_auth_url(config, state)
   return OAUTH_AUTHORIZE_URL .. '?' .. table.concat(query_parts, '&')
 end
 
+-- Get Atlassian cloud ID for the user's accessible resources
+---@param access_token string Access token
+---@return string|nil cloud_id Cloud ID or nil on error
+local function get_cloud_id(access_token)
+  local response = curl.get('https://api.atlassian.com/oauth/token/accessible-resources', {
+    headers = {
+      ['Authorization'] = 'Bearer ' .. access_token,
+      ['Accept'] = 'application/json',
+    },
+  })
+
+  if response.status == 200 then
+    local ok, resources = pcall(vim.json.decode, response.body)
+    if ok and resources and #resources > 0 then
+      -- Return the first accessible resource's cloud ID
+      return resources[1].id
+    end
+  end
+
+  return nil
+end
+
 -- Exchange authorization code for access token
 ---@param code string Authorization code
 ---@param callback function Callback function(success)
@@ -94,16 +116,27 @@ local function exchange_code_for_token(code, callback)
 
   if response.status == 200 then
     local ok, token_data = pcall(vim.json.decode, response.body)
-    if ok then
-      -- Save tokens
+    if ok and token_data.access_token then
+      -- Get cloud ID
+      vim.notify('Getting Atlassian cloud ID...', vim.log.levels.INFO)
+      local cloud_id = get_cloud_id(token_data.access_token)
+
+      if not cloud_id then
+        vim.notify('Failed to get cloud ID. Check your permissions.', vim.log.levels.ERROR)
+        callback(false)
+        return
+      end
+
+      -- Save tokens with cloud ID
       local auth_data = {
         access_token = token_data.access_token,
         refresh_token = token_data.refresh_token,
         expires_at = os.time() + (token_data.expires_in or 3600),
+        cloud_id = cloud_id,
       }
 
       storage.save_auth(auth_data)
-      vim.notify('✓ Successfully authenticated with Jira', vim.log.levels.INFO)
+      vim.notify('✓ Successfully authenticated with Jira (Cloud ID: ' .. cloud_id .. ')', vim.log.levels.INFO)
       callback(true)
     else
       vim.notify('Failed to parse token response', vim.log.levels.ERROR)
@@ -270,10 +303,23 @@ function M.get_access_token()
   return auth_data.access_token
 end
 
+-- Get Atlassian cloud ID from stored auth
+---@return string|nil cloud_id Cloud ID or nil if not authenticated
+function M.get_cloud_id()
+  local storage = require('jira-time.storage')
+  local auth_data = storage.load_auth()
+
+  if not auth_data or not auth_data.cloud_id then
+    return nil
+  end
+
+  return auth_data.cloud_id
+end
+
 -- Check if user is authenticated
 ---@return boolean authenticated True if authenticated
 function M.is_authenticated()
-  return M.get_access_token() ~= nil
+  return M.get_access_token() ~= nil and M.get_cloud_id() ~= nil
 end
 
 -- Logout (clear auth data)

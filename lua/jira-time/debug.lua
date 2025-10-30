@@ -16,6 +16,7 @@ function M.test_auth()
     if auth_data.access_token then
       print('Token prefix:', string.sub(auth_data.access_token, 1, 20) .. '...')
     end
+    print('Cloud ID:', auth_data.cloud_id or 'MISSING')
     print('Expires at:', auth_data.expires_at)
     print('Current time:', os.time())
     print('Expired:', auth_data.expires_at and (os.time() >= auth_data.expires_at) and 'YES' or 'NO')
@@ -46,19 +47,25 @@ end
 
 -- Test API request directly
 function M.test_api_request()
-  local config = require('jira-time.config').get()
   local auth = require('jira-time.auth')
   local token = auth.get_access_token()
+  local cloud_id = auth.get_cloud_id()
 
   if not token then
     print('No token available')
     return
   end
 
+  if not cloud_id then
+    print('No cloud ID available - need to re-authenticate')
+    return
+  end
+
   local curl = require('plenary.curl')
-  local url = config.jira_url .. '/rest/api/3/myself'
+  local url = 'https://api.atlassian.com/ex/jira/' .. cloud_id .. '/rest/api/3/myself'
 
   print('\n=== Direct API Test ===')
+  print('Cloud ID:', cloud_id)
   print('URL:', url)
   print('Token (first 30 chars):', string.sub(token, 1, 30) .. '...')
 
