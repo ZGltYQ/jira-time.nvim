@@ -30,8 +30,9 @@ function M.start_server(port, callback)
       end
 
       if chunk then
-        -- Parse HTTP request
-        local code, state = chunk:match('GET /callback%?code=([^&]+)&state=([^%s]+)')
+        -- Parse HTTP request - handle parameters in any order
+        local code = chunk:match('[?&]code=([^&%s]+)')
+        local state = chunk:match('[?&]state=([^&%s]+)')
 
         if code and state then
           -- Send success response
