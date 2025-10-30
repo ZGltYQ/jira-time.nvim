@@ -171,7 +171,7 @@ end
 ---@param jql string JQL query string
 ---@param callback function Callback function(results, error)
 function M.search_issues(jql, callback)
-  local endpoint = '/rest/api/3/search/jql'
+  local endpoint = '/rest/api/3/search'
   local data = {
     jql = jql,
   }
