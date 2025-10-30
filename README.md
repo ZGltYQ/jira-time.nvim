@@ -106,9 +106,10 @@ require('jira-time').setup({
   -- Statusline configuration
   statusline = {
     enabled = true,
-    format = '[%s] ⏱ %s', -- [ISSUE-KEY] ⏱ HH:MM:SS
-    show_when_inactive = false,
-    separator = ' | ',
+    mode = 'standalone', -- 'standalone', 'lualine', or 'custom'
+    position = 'right', -- Position: 'left', 'center', or 'right' (standalone mode only)
+    format = '[%s] ⏱ %s', -- Format: [ISSUE-KEY] ⏱ HH:MM:SS
+    show_when_inactive = false, -- Show even when timer is paused
   },
 
   -- Git branch patterns to extract Jira issue keys
@@ -228,11 +229,48 @@ The plugin displays a **live timer** at the bottom of Neovim showing:
 
 Example: `⏱ [PROJ-123] ⏱ 01:23:45`
 
-### Lualine (Recommended)
+### Standalone Mode (Default - Works Everywhere!)
 
-Add the jira-time component to your lualine configuration:
+**No configuration needed!** The timer automatically appears in your statusline when you start tracking:
 
 ```lua
+require('jira-time').setup({
+  oauth = {
+    client_id = 'your-oauth-client-id',
+    client_secret = 'your-oauth-client-secret',
+  },
+  -- Statusline is enabled by default in standalone mode
+})
+```
+
+The timer will automatically show at the **bottom-right** of Neovim when you run `:JiraTimeStart`.
+
+**Customize the position:**
+
+```lua
+require('jira-time').setup({
+  statusline = {
+    enabled = true,
+    mode = 'standalone', -- Default mode
+    position = 'right', -- 'left', 'center', or 'right'
+    format = '[%s] ⏱ %s', -- [ISSUE-KEY] ⏱ HH:MM:SS
+    show_when_inactive = false, -- Show even when timer is paused
+  },
+})
+```
+
+### Lualine Integration
+
+If you use lualine, switch to lualine mode:
+
+```lua
+require('jira-time').setup({
+  statusline = {
+    mode = 'lualine',
+  },
+})
+
+-- Then add to your lualine config:
 require('lualine').setup({
   sections = {
     lualine_x = {
@@ -245,31 +283,20 @@ require('lualine').setup({
 })
 ```
 
-The timer will automatically appear in your statusline when you start tracking time with `:JiraTimeStart`.
+### Custom Statusline Plugins
 
-### Custom Statusline
-
-For custom statuslines (statusline, feline, galaxyline, etc.), use the component function:
-
-```lua
-local jira_status = require('jira-time.statusline').get_component()
-
--- In your statusline builder
-statusline = statusline .. jira_status()
-```
-
-### Statusline Options
-
-Configure the statusline display in your setup:
+For other statusline plugins (heirline, feline, galaxyline, etc.):
 
 ```lua
 require('jira-time').setup({
   statusline = {
-    enabled = true,
-    format = '[%s] ⏱ %s', -- [ISSUE-KEY] ⏱ HH:MM:SS
-    show_when_inactive = false, -- Show even when timer is paused
+    mode = 'custom', -- Disable automatic integration
   },
 })
+
+-- Then use in your statusline config:
+local jira_status = require('jira-time.statusline').get_component()
+statusline = statusline .. jira_status()
 ```
 
 ## Workflow Example

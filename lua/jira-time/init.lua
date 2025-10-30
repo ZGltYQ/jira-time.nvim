@@ -23,6 +23,12 @@ function M.setup(opts)
   -- Setup timer auto-save autocmds
   M.timer.setup_autocmds()
 
+  -- Setup standalone statusline if enabled
+  local config = M.config.get()
+  if config.statusline.enabled and config.statusline.mode == 'standalone' then
+    M.statusline.setup_standalone()
+  end
+
   return M
 end
 

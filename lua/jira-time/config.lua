@@ -29,9 +29,11 @@ M.defaults = {
   -- Statusline configuration
   statusline = {
     enabled = true,
+    mode = 'standalone', -- 'standalone', 'lualine', or 'custom'
     format = '[%s] ⏱ %s', -- Format: [ISSUE-KEY] ⏱ HH:MM:SS
     show_when_inactive = false, -- Show issue even when timer is not running
     separator = ' | ',
+    position = 'right', -- Position in statusline: 'left', 'center', or 'right'
   },
 
   -- Git branch patterns to extract Jira issue keys
