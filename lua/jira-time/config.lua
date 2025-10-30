@@ -84,9 +84,7 @@ end
 function M.validate()
   local errors = {}
 
-  if not M.options.jira_url then
-    table.insert(errors, 'jira_url is required')
-  end
+  -- jira_url is now optional (auto-discovered during authentication)
 
   if not M.options.oauth.client_id then
     table.insert(errors, 'oauth.client_id is required')
