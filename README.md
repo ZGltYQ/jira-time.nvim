@@ -32,7 +32,6 @@ A Neovim plugin for logging time to Jira tasks directly from your editor. Track 
   },
   config = function()
     require('jira-time').setup({
-      jira_url = 'https://yourcompany.atlassian.net',
       oauth = {
         client_id = 'your-oauth-client-id',
         client_secret = 'your-oauth-client-secret',
@@ -50,7 +49,6 @@ use {
   requires = { 'nvim-lua/plenary.nvim' },
   config = function()
     require('jira-time').setup({
-      jira_url = 'https://yourcompany.atlassian.net',
       oauth = {
         client_id = 'your-oauth-client-id',
         client_secret = 'your-oauth-client-secret',
@@ -63,14 +61,20 @@ use {
 ## Setting up Atlassian OAuth 2.0
 
 1. Go to [Atlassian Developer Console](https://developer.atlassian.com/console/myapps/)
-2. Create a new OAuth 2.0 (3LO) app
-3. Add redirect URI: `http://localhost:8080/callback`
-4. Add required scopes:
-   - `read:jira-work`
-   - `write:jira-work`
-   - `read:jira-user`
-   - `offline_access`
-5. Copy your Client ID and Client Secret to your Neovim configuration
+2. Click **Create** → **OAuth 2.0 integration**
+3. Fill in the app details:
+   - **App name**: Choose any name (e.g., "Neovim Jira Timer")
+   - Click **Create**
+4. In the app settings:
+   - Click **Permissions** → **Add** → **Jira API**
+   - Add **Callback URL**: `http://localhost:8080/callback`
+   - Add required **Scopes**:
+     - `read:jira-work` - Read Jira issues and worklogs
+     - `write:jira-work` - Create and update worklogs
+     - `read:jira-user` - Read user information
+     - `offline_access` - Refresh tokens
+5. Click **Settings** and copy your **Client ID** and **Client Secret**
+6. Add them to your Neovim configuration (see Configuration section below)
 
 ## Configuration
 
@@ -78,13 +82,11 @@ Full configuration example:
 
 ```lua
 require('jira-time').setup({
-  -- Required: Your Jira instance URL
-  jira_url = 'https://yourcompany.atlassian.net',
-
-  -- Required: OAuth 2.0 credentials
+  -- Required: OAuth 2.0 credentials from Atlassian Developer Console
   oauth = {
     client_id = 'your-oauth-client-id',
     client_secret = 'your-oauth-client-secret',
+    -- Optional: Defaults shown below
     redirect_uri = 'http://localhost:8080/callback',
     scopes = {
       'read:jira-work',
@@ -135,7 +137,14 @@ First, authenticate with Jira:
 :JiraAuth
 ```
 
-This will open your browser for OAuth authentication. Follow the prompts and paste the authorization code when requested.
+This will:
+1. Open your browser for OAuth authentication
+2. Ask you to authorize the app in Atlassian
+3. Automatically redirect to `http://localhost:8080/callback`
+4. Automatically discover your Jira Cloud ID
+5. Save your authentication tokens for future use
+
+Note: Your Jira site URL (e.g., `yourcompany.atlassian.net`) is automatically discovered during authentication - no manual configuration needed!
 
 ### Commands
 
@@ -212,7 +221,14 @@ Show plugin status (useful for debugging).
 
 ## Statusline Integration
 
-### Lualine
+The plugin displays a **live timer** at the bottom of Neovim showing:
+- Current Jira issue key (e.g., `PROJ-123`)
+- Elapsed time (e.g., `01:23:45`)
+- Running/paused indicator (⏱/⏸)
+
+Example: `⏱ [PROJ-123] ⏱ 01:23:45`
+
+### Lualine (Recommended)
 
 Add the jira-time component to your lualine configuration:
 
@@ -229,15 +245,31 @@ require('lualine').setup({
 })
 ```
 
+The timer will automatically appear in your statusline when you start tracking time with `:JiraTimeStart`.
+
 ### Custom Statusline
 
-For custom statuslines, use the component function:
+For custom statuslines (statusline, feline, galaxyline, etc.), use the component function:
 
 ```lua
 local jira_status = require('jira-time.statusline').get_component()
 
 -- In your statusline builder
 statusline = statusline .. jira_status()
+```
+
+### Statusline Options
+
+Configure the statusline display in your setup:
+
+```lua
+require('jira-time').setup({
+  statusline = {
+    enabled = true,
+    format = '[%s] ⏱ %s', -- [ISSUE-KEY] ⏱ HH:MM:SS
+    show_when_inactive = false, -- Show even when timer is paused
+  },
+})
 ```
 
 ## Workflow Example

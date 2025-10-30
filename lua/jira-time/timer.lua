@@ -125,6 +125,8 @@ function M.start(issue_key, initial_seconds)
     1000, -- Repeat every 1 second
     vim.schedule_wrap(function()
       M.state.elapsed_seconds = M.state.elapsed_seconds + 1
+      -- Redraw statusline to update timer display
+      vim.api.nvim_command('redrawstatus')
     end)
   )
 
