@@ -50,6 +50,19 @@ M.defaults = {
     confirm_before_logging = true, -- Ask for confirmation before logging time
   },
 
+  -- Keymaps configuration
+  keymaps = {
+    enabled = true, -- Enable default keymaps
+    prefix = '<leader>j', -- Prefix for all jira-time keymaps
+    -- Individual keymaps (set to false to disable)
+    start = 's', -- <leader>js - Start timer
+    stop = 'x', -- <leader>jx - Stop timer
+    log = 'l', -- <leader>jl - Log time
+    select = 'i', -- <leader>ji - Select issue
+    view = 'v', -- <leader>jv - View worklogs
+    status = 't', -- <leader>jt - Show status
+  },
+
   -- Storage paths (automatically set based on stdpath)
   storage = {
     auth_file = nil, -- Set during setup

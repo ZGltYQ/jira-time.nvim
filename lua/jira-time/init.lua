@@ -11,6 +11,41 @@ M.ui = require('jira-time.ui')
 M.storage = require('jira-time.storage')
 M.statusline = require('jira-time.statusline')
 
+-- Setup keymaps
+local function setup_keymaps()
+  local config = M.config.get()
+
+  if not config.keymaps.enabled then
+    return
+  end
+
+  local prefix = config.keymaps.prefix
+  local maps = config.keymaps
+
+  -- Helper to create keymap with description
+  local function map(key, cmd, desc)
+    if key then
+      vim.keymap.set('n', prefix .. key, cmd, { desc = 'Jira: ' .. desc, silent = true })
+    end
+  end
+
+  -- Setup keymaps
+  map(maps.start, '<cmd>JiraTimeStart<cr>', 'Start timer')
+  map(maps.stop, '<cmd>JiraTimeStop<cr>', 'Stop timer')
+  map(maps.log, '<cmd>JiraTimeLog<cr>', 'Log time')
+  map(maps.select, '<cmd>JiraTimeSelect<cr>', 'Select issue')
+  map(maps.view, '<cmd>JiraTimeView<cr>', 'View worklogs')
+  map(maps.status, '<cmd>JiraTimeStatus<cr>', 'Show status')
+
+  -- Create which-key group if available
+  local ok, wk = pcall(require, 'which-key')
+  if ok then
+    wk.register({
+      [prefix] = { name = 'Jira Time' }
+    })
+  end
+end
+
 -- Setup function called by user
 ---@param opts table User configuration options
 function M.setup(opts)
@@ -28,6 +63,9 @@ function M.setup(opts)
   if config.statusline.enabled and config.statusline.mode == 'standalone' then
     M.statusline.setup_standalone()
   end
+
+  -- Setup keymaps
+  setup_keymaps()
 
   return M
 end

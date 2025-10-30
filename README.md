@@ -125,6 +125,61 @@ require('jira-time').setup({
     border = 'rounded',
     confirm_before_logging = true,
   },
+
+  -- Keymaps configuration
+  keymaps = {
+    enabled = true, -- Enable default keymaps
+    prefix = '<leader>j', -- Prefix for all jira-time keymaps
+    start = 's', -- <leader>js - Start timer
+    stop = 'x', -- <leader>jx - Stop timer
+    log = 'l', -- <leader>jl - Log time
+    select = 'i', -- <leader>ji - Select issue
+    view = 'v', -- <leader>jv - View worklogs
+    status = 't', -- <leader>jt - Show status
+  },
+})
+```
+
+## Keymaps
+
+Default keymaps are automatically configured with the prefix `<leader>j`:
+
+| Keymap | Command | Description |
+|--------|---------|-------------|
+| `<leader>js` | `:JiraTimeStart` | Start timer (auto-detect from branch or select issue) |
+| `<leader>jx` | `:JiraTimeStop` | Stop the running timer |
+| `<leader>jl` | `:JiraTimeLog` | Log time to Jira |
+| `<leader>ji` | `:JiraTimeSelect` | Select a different issue |
+| `<leader>jv` | `:JiraTimeView` | View worklogs for current issue |
+| `<leader>jt` | `:JiraTimeStatus` | Show plugin status |
+
+### Customizing Keymaps
+
+You can customize or disable keymaps in your configuration:
+
+```lua
+require('jira-time').setup({
+  keymaps = {
+    enabled = true, -- Set to false to disable all keymaps
+    prefix = '<leader>j', -- Change the prefix
+    start = 's', -- Change individual keys
+    stop = 'x',
+    log = 'l',
+    select = 'i',
+    view = 'v',
+    status = 't',
+  },
+})
+```
+
+To disable a specific keymap, set it to `false`:
+
+```lua
+require('jira-time').setup({
+  keymaps = {
+    start = false, -- Disable <leader>js
+    -- Other keymaps remain enabled
+  },
 })
 ```
 
@@ -283,9 +338,62 @@ require('lualine').setup({
 })
 ```
 
-### Custom Statusline Plugins
+### Heirline / AstroNvim Integration
 
-For other statusline plugins (heirline, feline, galaxyline, etc.):
+For AstroNvim or custom heirline setups, create `~/.config/nvim/lua/plugins/heirline.lua`:
+
+```lua
+-- First, configure jira-time to use custom mode
+require('jira-time').setup({
+  statusline = {
+    mode = 'custom',
+  },
+})
+```
+
+Then add the heirline integration:
+
+```lua
+-- ~/.config/nvim/lua/plugins/heirline.lua
+return {
+  "rebelot/heirline.nvim",
+  opts = function(_, opts)
+    local status = require("astroui.status")
+
+    -- Create jira-time component
+    local jira_component = status.component.builder({
+      {
+        provider = function()
+          local ok, jira = pcall(require, 'jira-time.statusline')
+          if ok then
+            local jira_status = jira.get_status()
+            if jira_status ~= '' then
+              return ' ' .. jira_status .. ' '
+            end
+          end
+          return ""
+        end,
+        hl = status.hl.get_attributes("git_branch", true),
+        on_click = {
+          callback = function()
+            vim.cmd("JiraTimeStatus")
+          end,
+          name = "jira_time_click",
+        },
+      },
+    })
+
+    -- Insert component into statusline
+    table.insert(opts.statusline, 9, jira_component)
+
+    return opts
+  end,
+}
+```
+
+### Other Custom Statusline Plugins
+
+For other statusline plugins (feline, galaxyline, etc.):
 
 ```lua
 require('jira-time').setup({
