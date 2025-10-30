@@ -17,6 +17,7 @@ Complete installation guide for jira-time.nvim across different plugin managers 
 Before installing jira-time.nvim, ensure you have:
 
 ### Required
+
 - **Neovim** >= 0.8.0
   ```bash
   nvim --version  # Check your version
@@ -28,6 +29,7 @@ Before installing jira-time.nvim, ensure you have:
 - **Jira Account** with access to Atlassian Jira
 
 ### Dependencies
+
 - **plenary.nvim** - Required for HTTP requests
 - **lualine.nvim** - Optional, for statusline integration
 
@@ -310,6 +312,7 @@ Open Neovim and run:
 ```
 
 Follow the prompts:
+
 1. Browser will open to Atlassian authorization page
 2. Click **"Accept"** to authorize the app
 3. You'll be redirected to `http://localhost:8080/callback?code=...`
@@ -327,6 +330,7 @@ Follow the prompts:
 ```
 
 You should see output like:
+
 ```
 === Jira Time Status ===
 Authenticated: true/false
@@ -340,6 +344,7 @@ Elapsed Time: 00:00:00
 ### Check Commands are Available
 
 Type `:JiraTime` and press Tab - you should see autocomplete with:
+
 - `:JiraTimeStart`
 - `:JiraTimeStop`
 - `:JiraTimeLog`
@@ -397,6 +402,7 @@ require('jira-time').setup({
 ### Configuration not loading
 
 Ensure your config is in the right place:
+
 - lazy.nvim: `~/.config/nvim/lua/plugins/` or in `lazy.setup({})`
 - packer.nvim: In your plugins file before `:PackerSync`
 - vim-plug: After `plug#end()` but before any plugin usage
@@ -429,21 +435,25 @@ require('lualine').setup({
 ## Updating the Plugin
 
 ### lazy.nvim
+
 ```vim
 :Lazy update jira-time.nvim
 ```
 
 ### packer.nvim
+
 ```vim
 :PackerUpdate
 ```
 
 ### vim-plug
+
 ```vim
 :PlugUpdate
 ```
 
 ### Manual
+
 ```bash
 cd ~/.local/share/nvim/site/pack/manual/start/jira-time.nvim
 git pull
@@ -452,29 +462,37 @@ git pull
 ## Uninstalling
 
 ### lazy.nvim
+
 Remove from your plugin configuration and run:
+
 ```vim
 :Lazy clean
 ```
 
 ### packer.nvim
+
 Remove from your plugin configuration and run:
+
 ```vim
 :PackerClean
 ```
 
 ### vim-plug
+
 Remove from your plugin configuration and run:
+
 ```vim
 :PlugClean
 ```
 
 ### Manual
+
 ```bash
 rm -rf ~/.local/share/nvim/site/pack/manual/start/jira-time.nvim
 ```
 
 ### Remove stored data
+
 ```bash
 rm -rf ~/.local/share/nvim/jira-time/
 ```
