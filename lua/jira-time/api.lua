@@ -59,20 +59,29 @@ function M.request(method, endpoint, data, callback)
     body = data and vim.json.encode(data) or nil,
   }
 
-  -- Make request
-  local response
-  if method == 'get' then
-    response = curl.get(url, opts)
-  elseif method == 'post' then
-    response = curl.post(url, opts)
-  elseif method == 'put' then
-    response = curl.put(url, opts)
-  elseif method == 'delete' then
-    response = curl.delete(url, opts)
-  else
-    vim.notify('Unsupported HTTP method: ' .. method, vim.log.levels.ERROR)
+  -- Debug: Show request URL
+  vim.notify('Making API request: ' .. method:upper() .. ' ' .. url, vim.log.levels.DEBUG)
+
+  -- Make request with error handling
+  local ok, response = pcall(function()
+    if method == 'get' then
+      return curl.get(url, opts)
+    elseif method == 'post' then
+      return curl.post(url, opts)
+    elseif method == 'put' then
+      return curl.put(url, opts)
+    elseif method == 'delete' then
+      return curl.delete(url, opts)
+    else
+      error('Unsupported HTTP method: ' .. method)
+    end
+  end)
+
+  if not ok then
+    local error_msg = 'API request failed: ' .. tostring(response)
+    vim.notify(error_msg, vim.log.levels.ERROR)
     if callback then
-      callback(nil, 'Unsupported HTTP method')
+      callback(nil, error_msg)
     end
     return
   end
