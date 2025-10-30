@@ -61,7 +61,7 @@ Create or edit `~/.config/nvim/lua/plugins/jira-time.lua`:
 ```lua
 return {
   {
-    'YOUR-USERNAME/jira-time.nvim',
+    'ZGltYQ/jira-time.nvim',
     dependencies = {
       'nvim-lua/plenary.nvim',
     },
@@ -81,7 +81,7 @@ Or add directly to your main config:
 ```lua
 require("lazy").setup({
   {
-    'YOUR-USERNAME/jira-time.nvim',
+    'ZGltYQ/jira-time.nvim',
     dependencies = { 'nvim-lua/plenary.nvim' },
     config = function()
       require('jira-time').setup({
@@ -129,7 +129,7 @@ return require('packer').startup(function(use)
 
   -- jira-time.nvim
   use {
-    'YOUR-USERNAME/jira-time.nvim',
+    'ZGltYQ/jira-time.nvim',
     requires = { 'nvim-lua/plenary.nvim' },
     config = function()
       require('jira-time').setup({
@@ -170,7 +170,7 @@ For `init.vim`:
 ```vim
 call plug#begin()
   Plug 'nvim-lua/plenary.nvim'
-  Plug 'YOUR-USERNAME/jira-time.nvim'
+  Plug 'ZGltYQ/jira-time.nvim'
 call plug#end()
 
 lua << EOF
@@ -189,7 +189,7 @@ For `init.lua`:
 ```lua
 vim.call('plug#begin')
   vim.cmd([[Plug 'nvim-lua/plenary.nvim']])
-  vim.cmd([[Plug 'YOUR-USERNAME/jira-time.nvim']])
+  vim.cmd([[Plug 'ZGltYQ/jira-time.nvim']])
 vim.call('plug#end')
 
 require('jira-time').setup({
@@ -217,7 +217,7 @@ mkdir -p ~/.local/share/nvim/site/pack/manual/start
 
 # Clone jira-time.nvim
 cd ~/.local/share/nvim/site/pack/manual/start
-git clone https://github.com/YOUR-USERNAME/jira-time.nvim.git
+git clone https://github.com/ZGltYQ/jira-time.nvim.git
 
 # Clone plenary.nvim dependency
 git clone https://github.com/nvim-lua/plenary.nvim.git

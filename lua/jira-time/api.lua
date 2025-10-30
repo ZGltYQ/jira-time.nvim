@@ -128,9 +128,19 @@ function M.request(method, endpoint, data, callback, is_retry)
   else
     local error_msg = 'API request failed: ' .. response.status
     if response.body then
+      vim.notify('Response body: ' .. response.body, vim.log.levels.DEBUG)
       local ok, error_data = pcall(vim.json.decode, response.body)
-      if ok and error_data.errorMessages then
-        error_msg = error_msg .. ' - ' .. table.concat(error_data.errorMessages, ', ')
+      if ok then
+        if error_data.errorMessages then
+          error_msg = error_msg .. ' - ' .. table.concat(error_data.errorMessages, ', ')
+        elseif error_data.message then
+          error_msg = error_msg .. ' - ' .. error_data.message
+        end
+      else
+        -- Not JSON, show raw body if small enough
+        if #response.body < 200 then
+          error_msg = error_msg .. ' - ' .. response.body
+        end
       end
     end
 

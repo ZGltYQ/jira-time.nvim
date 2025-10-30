@@ -35,7 +35,7 @@ Add to your Neovim config:
 
 ```lua
 {
-  'your-username/jira-time.nvim',
+  'ZGltYQ/jira-time.nvim',
   dependencies = { 'nvim-lua/plenary.nvim' },
   config = function()
     require('jira-time').setup({

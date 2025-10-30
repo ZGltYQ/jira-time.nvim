@@ -29,7 +29,7 @@ function M.test_auth()
   print('Client ID:', config.oauth.client_id)
 
   -- Test actual API call
-  print('\n=== Testing API Call ===')
+  print('\n=== Testing API Call (via plugin) ===')
   print('Calling /rest/api/3/myself...')
 
   require('jira-time.api').get_current_user(function(user, error)
@@ -39,6 +39,9 @@ function M.test_auth()
       print('SUCCESS! User:', vim.inspect(user))
     end
   end)
+
+  -- Also test direct curl call
+  M.test_api_request()
 end
 
 -- Test API request directly
@@ -55,18 +58,31 @@ function M.test_api_request()
   local curl = require('plenary.curl')
   local url = config.jira_url .. '/rest/api/3/myself'
 
-  print('Testing direct API call to:', url)
-  print('Token:', string.sub(token, 1, 30) .. '...')
+  print('\n=== Direct API Test ===')
+  print('URL:', url)
+  print('Token (first 30 chars):', string.sub(token, 1, 30) .. '...')
 
-  local response = curl.get(url, {
-    headers = {
-      ['Authorization'] = 'Bearer ' .. token,
-      ['Accept'] = 'application/json',
-    },
-  })
+  local ok, response = pcall(function()
+    return curl.get(url, {
+      headers = {
+        ['Authorization'] = 'Bearer ' .. token,
+        ['Accept'] = 'application/json',
+      },
+    })
+  end)
 
-  print('Status:', response.status)
-  print('Body:', response.body)
+  if not ok then
+    print('ERROR: Request failed:', response)
+    return
+  end
+
+  print('Status Code:', response.status)
+  if response.status ~= 200 then
+    print('ERROR Response Body:', response.body)
+    print('Response Headers:', vim.inspect(response.headers))
+  else
+    print('SUCCESS! User info:', response.body)
+  end
 end
 
 return M
