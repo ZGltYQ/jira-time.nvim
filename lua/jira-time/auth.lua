@@ -118,6 +118,7 @@ end
 -- Start OAuth 2.0 authentication flow
 function M.authenticate()
   local config = require('jira-time.config').get()
+  local oauth_server = require('jira-time.oauth_server')
 
   -- Validate OAuth configuration
   if not config.oauth.client_id or not config.oauth.client_secret then
@@ -131,40 +132,51 @@ function M.authenticate()
   local state = generate_state()
   local auth_url = build_auth_url(config, state)
 
-  -- Display instructions to user
-  vim.notify(
-    'Opening browser for authentication...\nAfter authorizing, you will be redirected to a URL.',
-    vim.log.levels.INFO
-  )
+  -- Start local callback server
+  local port = 8080
+  vim.notify('Starting OAuth callback server on port ' .. port .. '...', vim.log.levels.INFO)
 
-  -- Open browser (cross-platform)
-  local open_cmd
-  if vim.fn.has('mac') == 1 then
-    open_cmd = 'open'
-  elseif vim.fn.has('unix') == 1 then
-    open_cmd = 'xdg-open'
-  elseif vim.fn.has('win32') == 1 then
-    open_cmd = 'start'
-  else
-    vim.notify('Unable to open browser automatically. Please open this URL manually:', vim.log.levels.WARN)
-    print(auth_url)
-    return
-  end
-
-  vim.fn.system(open_cmd .. ' "' .. auth_url .. '"')
-
-  -- Prompt user to paste the authorization code
-  vim.ui.input({
-    prompt = 'Paste the authorization code from the redirect URL: ',
-  }, function(code)
-    if code and code ~= '' then
-      exchange_code_for_token(code, function(success)
-        if not success then
-          vim.notify('Authentication failed', vim.log.levels.ERROR)
-        end
-      end)
+  local server = oauth_server.start_server(port, function(code, received_state)
+    -- Verify state to prevent CSRF attacks
+    if received_state ~= state then
+      vim.notify('Security error: State mismatch. Authentication aborted.', vim.log.levels.ERROR)
+      return
     end
+
+    vim.notify('Authorization code received. Exchanging for access token...', vim.log.levels.INFO)
+
+    -- Exchange code for token
+    exchange_code_for_token(code, function(success)
+      if not success then
+        vim.notify('Failed to exchange authorization code for token', vim.log.levels.ERROR)
+      end
+    end)
   end)
+
+  -- Wait a moment for server to start
+  vim.defer_fn(function()
+    -- Display instructions to user
+    vim.notify(
+      'Opening browser for authentication...\nYou will be redirected automatically after authorization.',
+      vim.log.levels.INFO
+    )
+
+    -- Open browser (cross-platform)
+    local open_cmd
+    if vim.fn.has('mac') == 1 then
+      open_cmd = 'open'
+    elseif vim.fn.has('unix') == 1 then
+      open_cmd = 'xdg-open'
+    elseif vim.fn.has('win32') == 1 then
+      open_cmd = 'start'
+    else
+      vim.notify('Unable to open browser automatically. Please open this URL manually:', vim.log.levels.WARN)
+      print(auth_url)
+      return
+    end
+
+    vim.fn.system(open_cmd .. ' "' .. auth_url .. '"')
+  end, 100)
 end
 
 -- Refresh access token using refresh token
