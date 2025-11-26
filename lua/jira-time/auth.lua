@@ -127,12 +127,16 @@ local function exchange_code_for_token(code, callback)
         return
       end
 
-      -- Save tokens with cloud ID
+      -- Save tokens with cloud ID and lifecycle metadata
+      local current_time = os.time()
       local auth_data = {
         access_token = token_data.access_token,
         refresh_token = token_data.refresh_token,
-        expires_at = os.time() + (token_data.expires_in or 3600),
+        expires_at = current_time + (token_data.expires_in or 3600),
         cloud_id = cloud_id,
+        refresh_token_issued_at = current_time,  -- Track when refresh token was obtained
+        last_refresh_at = current_time,          -- Track last refresh time
+        token_version = 1,                       -- Schema version for future migrations
       }
 
       storage.save_auth(auth_data)
@@ -261,10 +265,20 @@ function M.refresh_token(callback)
   if response.status == 200 then
     local parse_ok, token_data = pcall(vim.json.decode, response.body)
     if parse_ok and token_data.access_token then
-      -- Update tokens
+      -- Update tokens and lifecycle metadata
+      local current_time = os.time()
       auth_data.access_token = token_data.access_token
       auth_data.refresh_token = token_data.refresh_token or auth_data.refresh_token
-      auth_data.expires_at = os.time() + (token_data.expires_in or 3600)
+      auth_data.expires_at = current_time + (token_data.expires_in or 3600)
+      auth_data.last_refresh_at = current_time
+
+      -- If we got a new refresh token, update the issued time
+      if token_data.refresh_token then
+        auth_data.refresh_token_issued_at = current_time
+      end
+
+      -- Ensure token_version is set
+      auth_data.token_version = auth_data.token_version or 1
 
       storage.save_auth(auth_data)
       vim.notify('Token refreshed successfully', vim.log.levels.DEBUG)
@@ -275,12 +289,107 @@ function M.refresh_token(callback)
     end
   else
     local error_msg = 'Token refresh failed with status ' .. response.status
+    local error_detail = nil
+
+    -- Try to parse error response
     if response.body then
+      local parse_ok, error_data = pcall(vim.json.decode, response.body)
+      if parse_ok and error_data.error then
+        error_detail = error_data.error
+
+        -- Specific error handling
+        if error_detail == 'invalid_grant' then
+          error_msg = 'Refresh token expired or invalid. Please run :JiraAuth to re-authenticate'
+        elseif error_detail == 'unauthorized_client' then
+          error_msg = 'OAuth client not authorized. Check your client_id and client_secret'
+        elseif error_data.error_description then
+          error_msg = error_msg .. ': ' .. error_data.error_description
+        end
+      end
       vim.notify('Response: ' .. response.body, vim.log.levels.DEBUG)
     end
+
     vim.notify(error_msg, vim.log.levels.ERROR)
+
+    -- Store error for diagnostics
+    auth_data.last_refresh_error = {
+      status = response.status,
+      error = error_detail,
+      timestamp = os.time(),
+    }
+    storage.save_auth(auth_data)
+
     callback(false)
   end
+end
+
+-- Check if token should be refreshed proactively
+---@param auth_data table Auth data to check
+---@return boolean should_refresh True if token should be refreshed
+local function should_refresh_token(auth_data)
+  if not auth_data or not auth_data.refresh_token then
+    return false
+  end
+
+  -- Get config values
+  local config = require('jira-time.config').get()
+  local token_config = config.token_refresh
+
+  -- Check if proactive refresh is enabled
+  if not token_config.proactive then
+    return false
+  end
+
+  local current_time = os.time()
+
+  -- Trigger 1: Access token expires soon
+  if auth_data.expires_at and (auth_data.expires_at - current_time) < token_config.refresh_before_expiry then
+    return true
+  end
+
+  -- Trigger 2: Last refresh was too long ago (keep refresh token active)
+  if auth_data.last_refresh_at then
+    local days_since_refresh = (current_time - auth_data.last_refresh_at) / 86400
+    if days_since_refresh > token_config.max_refresh_age_days then
+      return true
+    end
+  end
+
+  return false
+end
+
+-- Migrate auth data to latest schema
+---@param auth_data table Auth data to migrate
+---@return table auth_data Migrated auth data
+---@return boolean migrated True if migration was performed
+local function migrate_auth_data(auth_data)
+  if not auth_data then
+    return auth_data, false
+  end
+
+  local migrated = false
+  local current_time = os.time()
+
+  -- Check if migration is needed (missing new fields from v1 schema)
+  if not auth_data.token_version or auth_data.token_version < 1 then
+    -- Add missing fields with conservative defaults
+    if not auth_data.refresh_token_issued_at then
+      -- Conservative: assume refresh token was just issued
+      auth_data.refresh_token_issued_at = current_time
+      migrated = true
+    end
+
+    if not auth_data.last_refresh_at then
+      -- Conservative: assume token was just refreshed
+      auth_data.last_refresh_at = current_time
+      migrated = true
+    end
+
+    auth_data.token_version = 1
+    migrated = true
+  end
+
+  return auth_data, migrated
 end
 
 -- Get current access token (refreshes if expired)
@@ -293,11 +402,34 @@ function M.get_access_token()
     return nil
   end
 
+  -- Migrate old auth data if needed
+  local migrated
+  auth_data, migrated = migrate_auth_data(auth_data)
+  if migrated then
+    storage.save_auth(auth_data)
+    vim.notify('Auth data migrated to new schema', vim.log.levels.DEBUG)
+  end
+
   -- Check if token is expired
   if auth_data.expires_at and os.time() >= auth_data.expires_at then
     -- Token expired, need to refresh
     -- Note: This is synchronous check, actual refresh happens in API module
     return nil
+  end
+
+  -- Proactive refresh: check if token should be refreshed in background
+  if should_refresh_token(auth_data) then
+    vim.notify('Token expiring soon, refreshing in background...', vim.log.levels.DEBUG)
+    -- Trigger async refresh in background (non-blocking)
+    vim.schedule(function()
+      M.refresh_token(function(success)
+        if success then
+          vim.notify('Token proactively refreshed', vim.log.levels.DEBUG)
+        else
+          vim.notify('Proactive token refresh failed', vim.log.levels.WARN)
+        end
+      end)
+    end)
   end
 
   return auth_data.access_token
@@ -326,6 +458,59 @@ end
 function M.logout()
   local storage = require('jira-time.storage')
   storage.clear_auth()
+end
+
+-- Get token information for diagnostics
+---@return table|nil token_info Token information or nil if not authenticated
+function M.get_token_info()
+  local storage = require('jira-time.storage')
+  local auth_data = storage.load_auth()
+
+  if not auth_data then
+    return nil
+  end
+
+  local current_time = os.time()
+  local info = {
+    authenticated = auth_data.access_token ~= nil,
+    has_refresh_token = auth_data.refresh_token ~= nil,
+  }
+
+  -- Access token expiration
+  if auth_data.expires_at then
+    info.access_token_expires_at = auth_data.expires_at
+    info.access_token_expires_in_seconds = math.max(0, auth_data.expires_at - current_time)
+    info.access_token_expired = current_time >= auth_data.expires_at
+  end
+
+  -- Refresh token age
+  if auth_data.refresh_token_issued_at then
+    local days_old = (current_time - auth_data.refresh_token_issued_at) / 86400
+    info.refresh_token_age_days = math.floor(days_old)
+    info.refresh_token_issued_at = auth_data.refresh_token_issued_at
+  end
+
+  -- Last refresh time
+  if auth_data.last_refresh_at then
+    local days_since = (current_time - auth_data.last_refresh_at) / 86400
+    info.last_refresh_at = auth_data.last_refresh_at
+    info.days_since_last_refresh = days_since
+  end
+
+  -- Last error
+  if auth_data.last_refresh_error then
+    info.last_error = auth_data.last_refresh_error
+  end
+
+  -- Cloud ID
+  if auth_data.cloud_id then
+    info.cloud_id = auth_data.cloud_id
+  end
+
+  -- Schema version
+  info.token_version = auth_data.token_version or 0
+
+  return info
 end
 
 return M

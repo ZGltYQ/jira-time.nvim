@@ -19,6 +19,14 @@ M.defaults = {
     },
   },
 
+  -- Token refresh configuration
+  token_refresh = {
+    proactive = true,              -- Enable proactive token refresh
+    background_interval = 1800,    -- Background check interval in seconds (30 minutes)
+    refresh_before_expiry = 1800,  -- Refresh token this many seconds before expiry (30 minutes)
+    max_refresh_age_days = 60,     -- Trigger refresh if last refresh was more than this many days ago
+  },
+
   -- Timer configuration
   timer = {
     auto_save_interval = 60, -- Save timer state every 60 seconds
