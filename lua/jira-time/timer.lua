@@ -9,6 +9,10 @@ M.state = {
   elapsed_seconds = 0,
   timer_handle = nil,
   auto_save_timer = nil,
+  -- Auto-tracking state
+  last_known_branch = nil, -- Track branch to detect changes
+  pending_log_prompt = false, -- Prevent duplicate prompts
+  exit_log_in_progress = false, -- Track VimLeavePre handling
 }
 
 -- Format seconds as HH:MM:SS or custom format
@@ -78,6 +82,7 @@ function M.save_state()
     issue_key = M.state.issue_key,
     start_time = M.state.start_time,
     elapsed_seconds = M.state.elapsed_seconds,
+    last_known_branch = M.state.last_known_branch,
   }
 
   storage.save_timer(state_data)
@@ -91,6 +96,7 @@ function M.load_state()
   if state_data then
     M.state.issue_key = state_data.issue_key
     M.state.elapsed_seconds = state_data.elapsed_seconds or 0
+    M.state.last_known_branch = state_data.last_known_branch
 
     -- If timer was running when Neovim closed, restore it
     if state_data.running and state_data.start_time then
@@ -220,6 +226,47 @@ function M.setup_autocmds()
     end,
     desc = 'Save jira-time timer state before exiting',
   })
+end
+
+-- Get last known branch
+---@return string|nil branch The last known git branch
+function M.get_last_known_branch()
+  return M.state.last_known_branch
+end
+
+-- Set last known branch
+---@param branch string|nil The current branch name
+function M.set_last_known_branch(branch)
+  M.state.last_known_branch = branch
+end
+
+-- Check if elapsed time is above minimum threshold for logging
+---@return boolean above_threshold True if elapsed time meets minimum
+function M.is_above_minimum_threshold()
+  local config = require('jira-time.config').get()
+  local minimum = config.timer.minimum_log_seconds or 60
+  return M.state.elapsed_seconds >= minimum
+end
+
+-- Clear timer state for branch switch (without notification)
+function M.clear_for_branch_switch()
+  -- Stop timers silently
+  if M.state.timer_handle then
+    M.state.timer_handle:stop()
+    M.state.timer_handle:close()
+    M.state.timer_handle = nil
+  end
+
+  if M.state.auto_save_timer then
+    M.state.auto_save_timer:stop()
+    M.state.auto_save_timer:close()
+    M.state.auto_save_timer = nil
+  end
+
+  M.state.running = false
+  M.state.elapsed_seconds = 0
+  M.state.issue_key = nil
+  M.save_state()
 end
 
 return M

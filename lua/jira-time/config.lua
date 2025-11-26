@@ -23,7 +23,13 @@ M.defaults = {
   timer = {
     auto_save_interval = 60, -- Save timer state every 60 seconds
     format = '%H:%M:%S', -- Time format (hours:minutes:seconds)
-    auto_start_on_branch_change = false, -- Auto-start timer when switching branches
+    -- Auto-tracking options
+    auto_start_on_branch_change = true, -- Auto-start timer when entering branch with issue key
+    auto_log_on_branch_change = true, -- Prompt to log time when switching branches
+    auto_log_on_exit = true, -- Prompt to log time when closing Neovim
+    minimum_log_seconds = 60, -- Minimum seconds before prompting to log (1 minute)
+    skip_log_comment = true, -- Skip comment prompt for auto-logging
+    branch_check_events = { 'FocusGained', 'BufEnter', 'VimResume' }, -- Events that trigger branch check
   },
 
   -- Statusline configuration

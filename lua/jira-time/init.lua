@@ -10,6 +10,7 @@ M.timer = require('jira-time.timer')
 M.ui = require('jira-time.ui')
 M.storage = require('jira-time.storage')
 M.statusline = require('jira-time.statusline')
+M.autotrack = require('jira-time.autotrack')
 
 -- Setup keymaps
 local function setup_keymaps()
@@ -66,6 +67,9 @@ function M.setup(opts)
 
   -- Setup keymaps
   setup_keymaps()
+
+  -- Setup automatic time tracking (branch detection, auto-log on exit)
+  M.autotrack.setup_autocmds()
 
   return M
 end

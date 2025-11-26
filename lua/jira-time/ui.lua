@@ -82,6 +82,15 @@ function M.confirm(message, callback)
   end)
 end
 
+-- Synchronous confirmation using vim.fn.confirm
+-- Use this for VimLeavePre where async callbacks don't work
+---@param message string Confirmation message
+---@return boolean confirmed True if user confirmed
+function M.confirm_sync(message)
+  local choice = vim.fn.confirm(message, '&Yes\n&No', 2)
+  return choice == 1
+end
+
 -- Show notification with formatted time and issue
 ---@param issue_key string Jira issue key
 ---@param duration_seconds number Duration in seconds
@@ -114,15 +123,16 @@ function M.display_worklogs(issue_key, worklogs)
 
   -- Create a new buffer
   local buf = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
-  vim.api.nvim_buf_set_option(buf, 'bufhidden', 'wipe')
-  vim.api.nvim_buf_set_option(buf, 'filetype', 'markdown')
+  vim.bo[buf].buftype = 'nofile'
+  vim.bo[buf].bufhidden = 'wipe'
+  vim.bo[buf].filetype = 'markdown'
 
   -- Format worklog entries
   local lines = { '# Worklogs for ' .. issue_key, '' }
 
   for _, worklog in ipairs(worklogs) do
-    local author = worklog.author.displayName or worklog.author.emailAddress or 'Unknown'
+    -- Defensive nil check for author field
+    local author = (worklog.author and (worklog.author.displayName or worklog.author.emailAddress)) or 'Unknown'
     local time_spent = worklog.timeSpent or 'Unknown'
     local started = worklog.started or 'Unknown'
     local comment = worklog.comment or 'No comment'
@@ -139,7 +149,7 @@ function M.display_worklogs(issue_key, worklogs)
   -- Open in a split window
   vim.cmd('vsplit')
   vim.api.nvim_win_set_buf(0, buf)
-  vim.api.nvim_buf_set_option(buf, 'modifiable', false)
+  vim.bo[buf].modifiable = false
 end
 
 -- Show error message
